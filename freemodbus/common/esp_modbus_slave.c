@@ -63,6 +63,23 @@ static mb_descr_entry_t* mbc_slave_find_reg_descriptor(mb_param_type_t type, uin
     return NULL;
 }
 
+static mb_func_entry_t* mbc_slave_find_func_descriptor(uint8_t func_code)
+{
+    mb_func_entry_t* it;
+    mb_slave_options_t* mbs_opts = &slave_interface_ptr->opts;
+
+    if (LIST_EMPTY(&mbs_opts->mbs_custom_functions)) {
+        return NULL;
+    }
+
+    for (it = LIST_FIRST(&mbs_opts->mbs_custom_functions); it != NULL; it = LIST_NEXT(it, entries)) {
+        if (it->func_code == func_code) {
+            return it;
+        }
+    }
+    return NULL;
+}
+
 static void mbc_slave_free_descriptors(void) {
 
     mb_descr_entry_t* it;
@@ -73,6 +90,21 @@ static void mbc_slave_free_descriptors(void) {
             LIST_REMOVE(it, entries);
             free(it);
         }
+    }
+}
+
+static eMBException mbc_custom_function_callback(uint8_t *frame, uint16_t *length)
+{
+    uint8_t func_code = frame[0];
+    mb_func_entry_t* it = mbc_slave_find_func_descriptor(func_code);
+    if (it != NULL) {
+        return MB_EX_ILLEGAL_FUNCTION;
+    }
+    esp_err_t err = it->callback(frame, length, it->user_data);
+    switch (err) {
+        case ESP_OK: return MB_EX_NONE;
+        case ESP_ERR_INVALID_ARG: return MB_EX_ILLEGAL_DATA_VALUE;
+        default: return MB_EX_SLAVE_DEVICE_FAILURE;
     }
 }
 
@@ -229,6 +261,30 @@ esp_err_t mbc_slave_set_descriptor(mb_register_area_descriptor_t descr_data)
     return error;
 }
 
+
+esp_err_t mbc_slave_register_function(mb_register_func_discriptior_t descr_data)
+{
+    mb_func_entry_t* it = mbc_slave_find_func_descriptor(descr_data.func_code);
+    if (it != NULL) {
+        ESP_LOGE(TAG, "function already registered.");
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (eMBRegisterCB(descr_data.func_code, mbc_custom_function_callback) != MB_ENOERR) {
+        return ESP_FAIL;
+    }
+
+    mb_func_entry_t* new_descr = (mb_func_entry_t*) heap_caps_malloc(sizeof(mb_func_entry_t),
+                                            MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
+    MB_SLAVE_CHECK((new_descr != NULL), ESP_ERR_NO_MEM, "mb can not allocate memory for descriptor.");
+    new_descr->func_code = descr_data.func_code;
+    new_descr->callback = descr_data.callback;
+    new_descr->user_data = descr_data.user_data;
+    LIST_INSERT_HEAD(&slave_interface_ptr->opts.mbs_custom_functions, new_descr, entries);
+
+    return ESP_OK;
+}
+
+
 // The helper function to get time stamp in microseconds
 static uint64_t mbc_slave_get_time_stamp(void)
 {
@@ -274,6 +330,8 @@ static esp_err_t mbc_slave_send_param_access_notification(mb_event_group_t event
     }
     return err;
 }
+
+
 
 /*
  * Below are the common slave read/write register callback functions

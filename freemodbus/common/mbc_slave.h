@@ -23,6 +23,8 @@
 #define MB_CONTROLLER_NOTIFY_QUEUE_SIZE     (CONFIG_FMB_CONTROLLER_NOTIFY_QUEUE_SIZE) // Number of messages in parameter notification queue
 #define MB_CONTROLLER_NOTIFY_TIMEOUT        (pdMS_TO_TICKS(CONFIG_FMB_CONTROLLER_NOTIFY_TIMEOUT)) // notification timeout
 
+
+
 /**
  * @brief Device communication parameters for master
  */
@@ -45,6 +47,13 @@ typedef struct mb_descr_entry_s{
     LIST_ENTRY(mb_descr_entry_s) entries;    /*!< The Modbus area descriptor entry */
 } mb_descr_entry_t;
 
+typedef struct mb_func_entry_s{
+    uint8_t func_code;      /*!< 定制功能号 */
+    mb_custom_function_callback_t callback; /*!< 定制功能回调函数 */
+    void * user_data;       /*!< 用户回调函数的用户数据 */
+    LIST_ENTRY(mb_func_entry_s) entries;    /*!< The Modbus custom function entry */
+} mb_func_entry_t;
+
 /**
  * @brief Modbus controller handler structure
  */
@@ -55,6 +64,7 @@ typedef struct {
     EventGroupHandle_t mbs_event_group;                 /*!< controller event group */
     QueueHandle_t mbs_notification_queue_handle;        /*!< controller notification queue */
     LIST_HEAD(mbs_area_descriptors_, mb_descr_entry_s) mbs_area_descriptors[MB_PARAM_COUNT]; /*!< register area descriptors */
+    LIST_HEAD(mbs_custom_functions_, mb_func_entry_s) mbs_custom_functions; /*!< custom function descriptors */
 } mb_slave_options_t;
 
 typedef mb_event_group_t (*iface_check_event)(mb_event_group_t);          /*!< Interface method check_event */

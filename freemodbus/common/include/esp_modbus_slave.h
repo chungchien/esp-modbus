@@ -25,6 +25,10 @@ extern "C" {
         if (!(con)) { ESP_LOGE(TAG, "assert errno:%u, errno_str: !(%s)", (unsigned)errno, strerror(errno)); assert(0 && #con); } \
     } while (0)
 
+
+
+typedef esp_err_t (*mb_custom_function_callback_t)(uint8_t *pucFrame, uint16_t *usLen, void *user_data);
+
 /**
  * @brief Parameter access event information type
  */
@@ -45,6 +49,13 @@ typedef struct {
     void* address;                          /*!< Instance address for storage area descriptor */
     size_t size;                            /*!< Instance size for area descriptor (bytes) */
 } mb_register_area_descriptor_t;
+
+
+typedef struct {
+    uint8_t func_code;                          /*!< Custom modbus function code*/
+    mb_custom_function_callback_t callback;     /*!< Custom modbus function callback */
+    void *user_data;                            /*!< User data for custom function callback */
+} mb_register_func_discriptior_t;
 
 /**
  * @brief Initialize Modbus Slave controller and stack for TCP port
@@ -140,6 +151,15 @@ esp_err_t mbc_slave_get_param_info(mb_param_info_t* reg_info, uint32_t timeout);
  *     - ESP_ERR_INVALID_ARG: The argument is incorrect
  */
 esp_err_t mbc_slave_set_descriptor(mb_register_area_descriptor_t descr_data);
+
+
+/**
+ * @brief Register Modbus custom function code
+ * 
+ * @param descr_data function descriptor is set
+ * @return esp_err_t 
+ */
+esp_err_t mbc_slave_register_function(mb_register_func_discriptior_t descr_data);
 
 #ifdef __cplusplus
 }
