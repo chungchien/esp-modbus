@@ -48,6 +48,7 @@ extern "C" {
 #define MB_PAR_INFO_TOUT    (10)                // Timeout for get parameter info
 #define MB_PARITY_NONE      (UART_PARITY_DISABLE)
 
+#if 0
 // The Macros below handle the endianness while transfer N byte data into buffer (convert from network byte order)
 #define _XFER_2_RD(dst, src) { \
     *(uint8_t *)(dst)++ = *(uint8_t *)(src + 1); \
@@ -59,7 +60,19 @@ extern "C" {
     *(uint8_t *)(dst + 1) = *(uint8_t *)(src)++; \
     *(uint8_t *)(dst + 0) = *(uint8_t *)(src)++; \
 }
+#else
+// The Macros below handle the endianness while transfer N byte data into buffer (convert from network byte order)
+#define _XFER_2_RD(dst, src) { \
+    *(uint8_t *)(dst)++ = *(uint8_t *)(src + 0); \
+    *(uint8_t *)(dst)++ = *(uint8_t *)(src + 1); \
+    (src) += 2; \
+}
 
+#define _XFER_2_WR(dst, src) { \
+    *(uint8_t *)(dst + 0) = *(uint8_t *)(src)++; \
+    *(uint8_t *)(dst + 1) = *(uint8_t *)(src)++; \
+}
+#endif
 /**
  * @brief Types of actual Modbus implementation
  */
