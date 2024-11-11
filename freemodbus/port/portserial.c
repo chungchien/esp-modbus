@@ -85,9 +85,10 @@ static USHORT usMBPortSerialRxPoll(size_t xEventSize)
 
     if (bRxStateEnabled) {
         // Get received packet into Rx buffer
-        while(xReadStatus && (usCnt++ <= xEventSize)) {
+        while(xReadStatus && (usCnt < xEventSize)) {
             // Call the Modbus stack callback function and let it fill the buffers.
             xReadStatus = pxMBFrameCBByteReceived(); // callback to execute receive FSM
+            usCnt++;
         }
         // Send event EV_FRAME_RECEIVED to allow stack process packet
 #if !CONFIG_FMB_TIMER_PORT_ENABLED
@@ -123,7 +124,7 @@ static void vUartTask(void *pvParameters)
     for(;;) {
         int size = usb_serial_jtag_read_bytes(buffer, MB_SERIAL_BUF_SIZE, portMAX_DELAY);
         if (size > 0) {
-            ESP_LOGD(TAG,"Data event, length: %u", (unsigned)size);
+            ESP_LOGI(TAG,"Data event, length: %u", (unsigned)size);
             if (xRingbufferSend(xRxBuffer, buffer, size, 0) == pdTRUE) {
                 // Read received data and send it to modbus stack
                 usMBPortSerialRxPoll(size);

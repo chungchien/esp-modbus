@@ -161,6 +161,7 @@ eMBRTUReceive( UCHAR * pucRcvAddress, UCHAR ** pucFrame, USHORT * pusLength )
     UCHAR          *pucMBRTUFrame = ( UCHAR* ) ucRTUBuf;
     USHORT          usFrameLength = usRcvBufferPos;
 
+    ESP_LOGD(MB_PORT_TAG, "eMBRTUReceive: usRcvBufferPos=%d", usRcvBufferPos);
     if( xMBPortSerialGetRequest( &pucMBRTUFrame, &usFrameLength ) == FALSE )
     {
         return MB_EIO;

@@ -93,19 +93,35 @@ static void mbc_slave_free_descriptors(void) {
     }
 }
 
+static void mbc_slave_free_custom_functions(void) {
+    mb_func_entry_t* it;
+    mb_slave_options_t* mbs_opts = &slave_interface_ptr->opts;
+
+    while ((it = LIST_FIRST(&mbs_opts->mbs_custom_functions))) {
+        LIST_REMOVE(it, entries);
+        free(it);
+    }
+}
+
 static eMBException mbc_custom_function_callback(uint8_t *frame, uint16_t *length)
 {
     uint8_t func_code = frame[0];
+    ESP_LOGI(TAG, "Custom function: %d", (int)func_code);
+
     mb_func_entry_t* it = mbc_slave_find_func_descriptor(func_code);
-    if (it != NULL) {
+    if (it == NULL) {
+        ESP_LOGI(TAG, "Not support custom function: %d", (int)func_code);
         return MB_EX_ILLEGAL_FUNCTION;
     }
+    
     esp_err_t err = it->callback(frame, length, it->user_data);
     switch (err) {
         case ESP_OK: return MB_EX_NONE;
         case ESP_ERR_INVALID_ARG: return MB_EX_ILLEGAL_DATA_VALUE;
         default: return MB_EX_SLAVE_DEVICE_FAILURE;
     }
+
+    return MB_EX_ILLEGAL_FUNCTION;
 }
 
 void mbc_slave_init_iface(void* handler)
@@ -117,6 +133,7 @@ void mbc_slave_init_iface(void* handler)
     LIST_INIT(&mbs_opts->mbs_area_descriptors[MB_PARAM_HOLDING]);
     LIST_INIT(&mbs_opts->mbs_area_descriptors[MB_PARAM_COIL]);
     LIST_INIT(&mbs_opts->mbs_area_descriptors[MB_PARAM_DISCRETE]);
+    LIST_INIT(&mbs_opts->mbs_custom_functions);
 }
 
 /**
@@ -141,6 +158,7 @@ esp_err_t mbc_slave_destroy(void)
                     (int)error);
     // Destroy all opened descriptors
     mbc_slave_free_descriptors();
+    mbc_slave_free_custom_functions();
     free(slave_interface_ptr);
     slave_interface_ptr = NULL;
     return error;
@@ -264,6 +282,10 @@ esp_err_t mbc_slave_set_descriptor(mb_register_area_descriptor_t descr_data)
 
 esp_err_t mbc_slave_register_function(mb_register_func_discriptior_t descr_data)
 {
+    ESP_RETURN_ON_FALSE((descr_data.func_code >= 65 && descr_data.func_code <= 72) 
+        || (descr_data.func_code >= 100 && descr_data.func_code <= 110),
+        ESP_ERR_INVALID_ARG, TAG, "mb incorrect function code.");
+    
     mb_func_entry_t* it = mbc_slave_find_func_descriptor(descr_data.func_code);
     if (it != NULL) {
         ESP_LOGE(TAG, "function already registered.");
@@ -281,6 +303,7 @@ esp_err_t mbc_slave_register_function(mb_register_func_discriptior_t descr_data)
     new_descr->user_data = descr_data.user_data;
     LIST_INSERT_HEAD(&slave_interface_ptr->opts.mbs_custom_functions, new_descr, entries);
 
+    ESP_LOGI(TAG, "register custom function %d ok.", (int)descr_data.func_code);
     return ESP_OK;
 }
 
