@@ -123,6 +123,16 @@ static void vUartTask(void *pvParameters)
     assert(xRxBuffer);
     for(;;) {
         int size = usb_serial_jtag_read_bytes(buffer, MB_SERIAL_BUF_SIZE, portMAX_DELAY);
+        uint32_t timeout = xTaskGetTickCount() + pdMS_TO_TICKS(35);
+        while (size < MB_SERIAL_BUF_SIZE && xTaskGetTickCount() < timeout) {
+            int n = usb_serial_jtag_read_bytes(buffer + size, MB_SERIAL_BUF_SIZE - size, timeout - xTaskGetTickCount());
+            if (n <= 0) {
+                ESP_LOGI(TAG, "Timeout, no data received");
+                break;
+            }
+            size += n;
+            timeout = xTaskGetTickCount() + pdMS_TO_TICKS(35);
+        }
         if (size > 0) {
             ESP_LOGI(TAG,"Data event, length: %u", (unsigned)size);
             if (xRingbufferSend(xRxBuffer, buffer, size, 0) == pdTRUE) {
