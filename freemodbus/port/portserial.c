@@ -68,8 +68,7 @@ void vMBPortSerialEnable(BOOL bRxEnable, BOOL bTxEnable)
     } else {
         bTxStateEnabled = FALSE;
     }
-    if (bRxEnable) {
-        // clear Rx buffer?        
+    if (bRxEnable) {     
         bRxStateEnabled = TRUE;
         vTaskResume(xMbTaskHandle); // Resume receiver task
     } else {
@@ -127,14 +126,14 @@ static void vUartTask(void *pvParameters)
         while (size < MB_SERIAL_BUF_SIZE && xTaskGetTickCount() < timeout) {
             int n = usb_serial_jtag_read_bytes(buffer + size, MB_SERIAL_BUF_SIZE - size, timeout - xTaskGetTickCount());
             if (n <= 0) {
-                ESP_LOGI(TAG, "Timeout, no data received");
+                ESP_LOGD(TAG, "Timeout, no data received");
                 break;
             }
             size += n;
             timeout = xTaskGetTickCount() + pdMS_TO_TICKS(35);
         }
         if (size > 0) {
-            ESP_LOGI(TAG,"Data event, length: %u", (unsigned)size);
+            ESP_LOGD(TAG,"Data event, length: %u", (unsigned)size);
             if (xRingbufferSend(xRxBuffer, buffer, size, 0) == pdTRUE) {
                 // Read received data and send it to modbus stack
                 usMBPortSerialRxPoll(size);

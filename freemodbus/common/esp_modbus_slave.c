@@ -114,7 +114,7 @@ static eMBException mbc_custom_function_callback(uint8_t *frame, uint16_t *lengt
         return MB_EX_ILLEGAL_FUNCTION;
     }
     
-    esp_err_t err = it->callback(frame, length, it->user_data);
+    esp_err_t err = it->callback(frame, length);
     switch (err) {
         case ESP_OK: return MB_EX_NONE;
         case ESP_ERR_INVALID_ARG: return MB_EX_ILLEGAL_DATA_VALUE;
@@ -300,7 +300,6 @@ esp_err_t mbc_slave_register_function(mb_register_func_discriptior_t descr_data)
     MB_SLAVE_CHECK((new_descr != NULL), ESP_ERR_NO_MEM, "mb can not allocate memory for descriptor.");
     new_descr->func_code = descr_data.func_code;
     new_descr->callback = descr_data.callback;
-    new_descr->user_data = descr_data.user_data;
     LIST_INSERT_HEAD(&slave_interface_ptr->opts.mbs_custom_functions, new_descr, entries);
 
     ESP_LOGI(TAG, "register custom function %d ok.", (int)descr_data.func_code);
