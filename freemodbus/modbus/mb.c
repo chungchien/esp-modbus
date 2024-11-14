@@ -249,7 +249,7 @@ eMBRegisterCB( UCHAR ucFunctionCode, pxMBFunctionHandler pxHandler )
             for( i = 0; i < MB_FUNC_HANDLERS_MAX; i++ )
             {
                 if( ( xFuncHandlers[i].pxHandler == NULL ) ||
-                    ( xFuncHandlers[i].pxHandler == pxHandler ) )
+                    ( xFuncHandlers[i].ucFunctionCode == ucFunctionCode ) )
                 {
                     xFuncHandlers[i].ucFunctionCode = ucFunctionCode;
                     xFuncHandlers[i].pxHandler = pxHandler;

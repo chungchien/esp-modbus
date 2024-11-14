@@ -50,7 +50,6 @@ typedef struct mb_descr_entry_s{
 typedef struct mb_func_entry_s{
     uint8_t func_code;      /*!< 定制功能号 */
     mb_custom_function_callback_t callback; /*!< 定制功能回调函数 */
-    void * user_data;       /*!< 用户回调函数的用户数据 */
     LIST_ENTRY(mb_func_entry_s) entries;    /*!< The Modbus custom function entry */
 } mb_func_entry_t;
 

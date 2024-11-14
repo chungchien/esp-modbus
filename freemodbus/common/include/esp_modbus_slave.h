@@ -27,7 +27,7 @@ extern "C" {
 
 
 
-typedef esp_err_t (*mb_custom_function_callback_t)(uint8_t *pucFrame, uint16_t *usLen, void *user_data);
+typedef esp_err_t (*mb_custom_function_callback_t)(uint8_t *pucFrame, uint16_t *usLen);
 
 /**
  * @brief Parameter access event information type
@@ -54,7 +54,6 @@ typedef struct {
 typedef struct {
     uint8_t func_code;                          /*!< Custom modbus function code*/
     mb_custom_function_callback_t callback;     /*!< Custom modbus function callback */
-    void *user_data;                            /*!< User data for custom function callback */
 } mb_register_func_discriptior_t;
 
 /**
