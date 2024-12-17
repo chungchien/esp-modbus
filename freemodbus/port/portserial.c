@@ -51,7 +51,8 @@
 
 // Note: This code uses mixed coding standard from legacy IDF code and used freemodbus stack
 
-static TaskHandle_t  xMbTaskHandle;
+static volatile TaskHandle_t  xMbTaskHandle;
+static volatile bool bMbExitTask = false; //  Flag to exit receiver task
 static const CHAR *TAG = "MB_SERIAL";
 
 // The UART hardware port number
@@ -116,30 +117,42 @@ BOOL xMBPortSerialTxPoll(void)
     return FALSE;
 }
 
-static void vUartTask(void *pvParameters)
+static void vSerialTask(void *pvParameters)
 {
     uint8_t buffer[MB_SERIAL_BUF_SIZE];
     assert(xRxBuffer);
-    for(;;) {
-        int size = usb_serial_jtag_read_bytes(buffer, MB_SERIAL_BUF_SIZE, portMAX_DELAY);
+    while(!bMbExitTask) {
+        int size = usb_serial_jtag_read_bytes(buffer, MB_SERIAL_BUF_SIZE, pdMS_TO_TICKS(100));
+        // ESP_LOGI(TAG, "usb_serial_jtag_read_bytes: %d", size);
+        if (bMbExitTask || size < 0) {
+            // ESP_LOGI(TAG, "break while reading from USB serial");
+            break;
+        }
         uint32_t timeout = xTaskGetTickCount() + pdMS_TO_TICKS(35);
-        while (size < MB_SERIAL_BUF_SIZE && xTaskGetTickCount() < timeout) {
+        while (size > 0 && size < MB_SERIAL_BUF_SIZE && xTaskGetTickCount() < timeout) {
             int n = usb_serial_jtag_read_bytes(buffer + size, MB_SERIAL_BUF_SIZE - size, timeout - xTaskGetTickCount());
             if (n <= 0) {
-                ESP_LOGD(TAG, "Timeout, no data received");
+                // ESP_LOGI(TAG, "Timeout, no data received");
                 break;
             }
             size += n;
             timeout = xTaskGetTickCount() + pdMS_TO_TICKS(35);
         }
         if (size > 0) {
-            ESP_LOGD(TAG,"Data event, length: %u", (unsigned)size);
+            // ESP_LOGI(TAG,"Data event, length: %u", (unsigned)size);
             if (xRingbufferSend(xRxBuffer, buffer, size, 0) == pdTRUE) {
                 // Read received data and send it to modbus stack
                 usMBPortSerialRxPoll(size);
             }
         }
     }
+    ESP_LOGI(TAG, "usb_serial_jtag_driver_uninstall");
+    usb_serial_jtag_driver_uninstall();
+    (void)vRingbufferDelete(xRxBuffer);
+    xRxBuffer = NULL;
+
+    ESP_LOGI(TAG, "RTU Serial task exit");
+    xMbTaskHandle = NULL;
     vTaskDelete(NULL);
 }
 
@@ -162,10 +175,11 @@ BOOL xMBPortSerialInit(UCHAR ucPORT, ULONG ulBaudRate,
             FALSE, "mb config failure, usb_serial_jtag_driver_install() returned (0x%x).", (int)xErr);
 
     // Create a task to handle UART events
-    BaseType_t xStatus = xTaskCreatePinnedToCore(vUartTask, "uart_queue_task",
+    bMbExitTask = false;
+    BaseType_t xStatus = xTaskCreatePinnedToCore(vSerialTask, "RTUSerialTask",
                                                     MB_SERIAL_TASK_STACK_SIZE,
                                                     NULL, MB_SERIAL_TASK_PRIO,
-                                                    &xMbTaskHandle, MB_PORT_TASK_AFFINITY);
+                                                    (TaskHandle_t *const)&xMbTaskHandle, MB_PORT_TASK_AFFINITY);
     if (xStatus != pdPASS) {
         vTaskDelete(xMbTaskHandle);
         // Force exit from function with failure
@@ -180,13 +194,12 @@ BOOL xMBPortSerialInit(UCHAR ucPORT, ULONG ulBaudRate,
 
 void vMBPortSerialClose(void)
 {
-    (void)vTaskSuspend(xMbTaskHandle);
-    (void)vTaskDelete(xMbTaskHandle);
-    if (xRxBuffer) {
-        (void)vRingbufferDelete(xRxBuffer);
-        xRxBuffer = NULL;
+    bMbExitTask = true;
+    while (xMbTaskHandle != NULL)  {
+        vTaskResume(xMbTaskHandle); // Resume receiver task
+        // ESP_LOGI(TAG, "Waiting for serial task to exit...");
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
-    ESP_ERROR_CHECK(usb_serial_jtag_driver_uninstall());
 }
 
 BOOL xMBPortSerialPutByte(CHAR ucByte)

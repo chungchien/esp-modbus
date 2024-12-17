@@ -196,7 +196,7 @@ BOOL xMBMasterPortSerialTxPoll(void)
 }
 
 // UART receive event task
-static void vUartTask(void* pvParameters)
+static void vSerialTask(void* pvParameters)
 {
     uart_event_t xEvent;
     USHORT usResult = 0;
@@ -331,7 +331,7 @@ BOOL xMBMasterPortSerialInit( UCHAR ucPORT, ULONG ulBaudRate, UCHAR ucDataBits, 
     MB_PORT_CHECK((xMBMasterPortRxSemaInit()), FALSE,
                         "mb serial RX semaphore create fail.");
     // Create a task to handle UART events
-    BaseType_t xStatus = xTaskCreatePinnedToCore(vUartTask, "uart_queue_task",
+    BaseType_t xStatus = xTaskCreatePinnedToCore(vSerialTask, "uart_queue_task",
                                                     MB_SERIAL_TASK_STACK_SIZE,
                                                     NULL, MB_SERIAL_TASK_PRIO,
                                                     &xMbTaskHandle, MB_PORT_TASK_AFFINITY);
