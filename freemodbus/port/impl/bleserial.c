@@ -75,17 +75,14 @@ static bool ble_serial_init(UCHAR ucPORT, ULONG ulBaudRate,
     ESP_UNUSED(ucDataBits);
     ESP_UNUSED(eParity);
 
-    
-    esp_event_handler_register(BLE_SERVER_EVENT, BLE_SERVER_EVENT_CONNECTED, event_handler, NULL);
-    esp_event_handler_register(BLE_SERVER_EVENT, BLE_SERVER_EVENT_DISCONNECTED, event_handler, NULL);
     esp_event_handler_register(BLE_SERVER_EVENT, BLE_SERVER_EVENT_RX, event_handler, NULL);
-
+#if 0
     esp_err_t err = ble_server_start();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "ble_server_start failed: %s", esp_err_to_name(err));
         goto RETURN_FALURE;
     }
-
+#endif
     s_event_group = xEventGroupCreate();
     xRxBuffer = xRingbufferCreate(MB_SERIAL_BUF_SIZE, RINGBUF_TYPE_BYTEBUF);
     if (xRxBuffer == NULL) {
@@ -129,9 +126,6 @@ RETURN_FALURE:
         xTxBuffer = NULL;
     }
     ble_server_stop();
-    
-    esp_event_handler_unregister(BLE_SERVER_EVENT, BLE_SERVER_EVENT_CONNECTED, event_handler);
-    esp_event_handler_unregister(BLE_SERVER_EVENT, BLE_SERVER_EVENT_DISCONNECTED, event_handler);
     esp_event_handler_unregister(BLE_SERVER_EVENT, BLE_SERVER_EVENT_RX, event_handler); 
     return false;
 }
@@ -145,15 +139,11 @@ static void ble_serial_close(void)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    esp_event_handler_unregister(BLE_SERVER_EVENT, BLE_SERVER_EVENT_CONNECTED,
-                                 event_handler);
-    esp_event_handler_unregister(BLE_SERVER_EVENT,
-                                 BLE_SERVER_EVENT_DISCONNECTED,
-                                 event_handler);
     esp_event_handler_unregister(BLE_SERVER_EVENT, BLE_SERVER_EVENT_RX,
                                  event_handler);
-
+#if 0
     ble_server_stop();
+#endif
 }
 
 static bool ble_serial_put_byte(uint8_t ucByte)
