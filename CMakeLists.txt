@@ -21,6 +21,9 @@ set(srcs
     "port/portserial_m.c"
     "port/porttimer.c"
     "port/porttimer_m.c"
+    "port/impl/bleserial.c"
+    "port/impl/uartserial.c"
+    "port/impl/usbserial.c"
     "modbus/functions/mbfunccoils.c"
     "modbus/functions/mbfunccoils_m.c"
     "modbus/functions/mbfuncdiag.c"
@@ -74,5 +77,5 @@ idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "${include_dirs}"
                     PRIV_INCLUDE_DIRS "${priv_include_dirs}"
                     REQUIRES ${requires}
-                    PRIV_REQUIRES esp_netif)
+                    PRIV_REQUIRES esp_netif bleserver)
 

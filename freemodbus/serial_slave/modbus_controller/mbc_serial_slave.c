@@ -16,6 +16,7 @@
 #include "mbc_slave.h"              // for private slave interface types
 #include "mbc_serial_slave.h"       // for serial slave implementation definitions
 #include "port_serial_slave.h"
+#include "mbportnumber.h"
 
 // Shared pointer to interface structure
 static mb_slave_interface_t* mbs_interface_ptr = NULL;
@@ -63,7 +64,7 @@ static esp_err_t mbc_serial_slave_setup(void* comm_info)
                 (unsigned)comm_settings->mode);
     MB_SLAVE_CHECK((comm_settings->slave_addr <= MB_ADDRESS_MAX),
                     ESP_ERR_INVALID_ARG, "mb wrong slave address = (%u).", (unsigned)comm_settings->slave_addr);
-    MB_SLAVE_CHECK((comm_settings->port < UART_NUM_MAX), ESP_ERR_INVALID_ARG,
+    MB_SLAVE_CHECK((comm_settings->port < SERIAL_PORT_COUNT), ESP_ERR_INVALID_ARG,
                     "mb wrong port to set = (%u).", (unsigned)comm_settings->port);
     MB_SLAVE_CHECK((comm_settings->parity <= UART_PARITY_ODD), ESP_ERR_INVALID_ARG,
                     "mb wrong parity option = (%u).", (unsigned)comm_settings->parity);

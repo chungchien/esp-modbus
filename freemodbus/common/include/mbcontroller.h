@@ -20,4 +20,6 @@
 #include "esp_modbus_master.h"
 #include "esp_modbus_slave.h"
 
+#include "mbportnumber.h"
+
 #endif

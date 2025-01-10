@@ -61,7 +61,7 @@ static const CHAR *TAG = "MB_MASTER_SERIAL";
 
 // A queue to handle UART event.
 static QueueHandle_t xMbUartQueue;
-static TaskHandle_t  xMbTaskHandle;
+static TaskHandle_t  s_task_handle;
 
 // The UART hardware port number
 static UCHAR ucUartNumber = UART_NUM_MAX - 1;
@@ -138,9 +138,9 @@ void vMBMasterPortSerialEnable(BOOL bRxEnable, BOOL bTxEnable)
     if (bRxEnable) {
         bRxStateEnabled = TRUE;
         vMBMasterRxSemaRelease();
-        vTaskResume(xMbTaskHandle); // Resume receiver task
+        vTaskResume(s_task_handle); // Resume receiver task
     } else {
-        vTaskSuspend(xMbTaskHandle); // Block receiver task
+        vTaskSuspend(s_task_handle); // Block receiver task
         bRxStateEnabled = FALSE;
     }
 }
@@ -334,14 +334,14 @@ BOOL xMBMasterPortSerialInit( UCHAR ucPORT, ULONG ulBaudRate, UCHAR ucDataBits, 
     BaseType_t xStatus = xTaskCreatePinnedToCore(vSerialTask, "uart_queue_task",
                                                     MB_SERIAL_TASK_STACK_SIZE,
                                                     NULL, MB_SERIAL_TASK_PRIO,
-                                                    &xMbTaskHandle, MB_PORT_TASK_AFFINITY);
+                                                    &s_task_handle, MB_PORT_TASK_AFFINITY);
     if (xStatus != pdPASS) {
-        vTaskDelete(xMbTaskHandle);
+        vTaskDelete(s_task_handle);
         // Force exit from function with failure
         MB_PORT_CHECK(FALSE, FALSE,
                 "mb stack serial task creation error. xTaskCreate() returned (0x%x).", (int)xStatus);
     } else {
-        vTaskSuspend(xMbTaskHandle); // Suspend serial task while stack is not started
+        vTaskSuspend(s_task_handle); // Suspend serial task while stack is not started
     }
     ESP_LOGD(MB_PORT_TAG,"%s Init serial.", __func__);
     return TRUE;
@@ -350,7 +350,7 @@ BOOL xMBMasterPortSerialInit( UCHAR ucPORT, ULONG ulBaudRate, UCHAR ucDataBits, 
 void vMBMasterPortSerialClose(void)
 {
     vMBMasterPortRxSemaClose();
-    (void)vTaskDelete(xMbTaskHandle);
+    (void)vTaskDelete(s_task_handle);
     ESP_ERROR_CHECK(uart_driver_delete(ucUartNumber));
 }
 

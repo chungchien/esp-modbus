@@ -24,7 +24,6 @@
 #define MB_CONTROLLER_NOTIFY_TIMEOUT        (pdMS_TO_TICKS(CONFIG_FMB_CONTROLLER_NOTIFY_TIMEOUT)) // notification timeout
 
 
-
 /**
  * @brief Device communication parameters for master
  */
