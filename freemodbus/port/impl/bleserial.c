@@ -190,7 +190,8 @@ static void flush_output(void)
     size_t itemSize = 0;
     uint8_t *p;
     while ((p = xRingbufferReceiveUpTo(xTxBuffer, &itemSize, 0, MB_SERIAL_BUF_SIZE)) != NULL) {
-        ble_server_transmit(p, itemSize);
+        ESP_LOGI(TAG, "flush_output: %d bytes", itemSize);
+        ESP_ERROR_CHECK_WITHOUT_ABORT(ble_server_transmit(p, itemSize));
         vRingbufferReturnItem(xTxBuffer, p);
     }
 }
